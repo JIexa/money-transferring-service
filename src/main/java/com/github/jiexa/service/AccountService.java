@@ -8,6 +8,7 @@ import com.github.jiexa.storage.AccountStorage;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Log4j2
 public class AccountService {
@@ -23,7 +24,7 @@ public class AccountService {
 
 //        FIXME: probably, it is better to verify existence of the account on the data storage layer
         if (isAccountNotExistFor(personId)) {
-            return accountStorage.createAccountByPersonId(personId);
+            return accountStorage.createDefaultAccountByPersonId(personId);
         }
         throw new AccountServiceException("undefined exception");
     }
@@ -46,5 +47,29 @@ public class AccountService {
             throw new AccountAlreadyExistsException(String.format("with id=%d", personId));
         }
         return true;
+    }
+
+
+    public void putMoneyIntoAccountInRubles(UUID accountId, Double amountOfMoney) throws AccountNotFoundException {
+
+        Optional<Account> account = accountStorage.getAccountById(accountId);
+        if (!account.isPresent()) {
+            log.error("account with id={} does not exist", accountId);
+            throw new AccountNotFoundException("error while getting an account with id="+ accountId);
+        }
+
+        account.get().replenishAccount(amountOfMoney);
+    }
+
+
+    public void withdrawMoneyFromAccountInRubles(UUID accountId, Double amountOfMoney) throws AccountNotFoundException {
+
+        Optional<Account> account = accountStorage.getAccountById(accountId);
+        if (!account.isPresent()) {
+            log.error("account with id={} does not exist", accountId);
+            throw new AccountNotFoundException("error while getting an account with id=" + accountId);
+        }
+
+        account.get().replenishAccount(amountOfMoney);
     }
 }
