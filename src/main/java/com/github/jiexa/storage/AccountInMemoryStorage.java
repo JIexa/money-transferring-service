@@ -2,14 +2,17 @@ package com.github.jiexa.storage;
 
 import com.github.jiexa.model.Account;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class AccountInMemoryStorage implements AccountStorage {
 
     private final Map<Long, Account> accountStorageByPerson = new HashMap<>();
+
+    @Override
+    public List<Account> getAllAccounts() {
+        return new ArrayList<>(accountStorageByPerson.values());
+    }
 
     @Override
     public Optional<Account> getAccountByPersonId(Long personId) {

@@ -1,7 +1,7 @@
 package com.github.jiexa.controller;
 
 import com.github.jiexa.service.AccountService;
-import com.github.jiexa.service.AccountServiceException;
+import com.github.jiexa.service.exception.AccountServiceException;
 
 public class MoneyController {
 

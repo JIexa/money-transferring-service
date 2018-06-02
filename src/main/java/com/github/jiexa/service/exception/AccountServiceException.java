@@ -1,4 +1,4 @@
-package com.github.jiexa.service;
+package com.github.jiexa.service.exception;
 
 public class AccountServiceException extends Exception {
 
