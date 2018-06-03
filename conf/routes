@@ -1,0 +1,5 @@
+
+GET       /money                    controllers.AccountController.getMoney
+GET       /account/by/:personId     controllers.AccountController.getAccountFor(personId: Long)
+
+POST      /create/:personId         controllers.AccountController.create(personId: Long)

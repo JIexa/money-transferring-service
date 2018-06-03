@@ -1,22 +1,27 @@
-package com.github.jiexa.service;
+package service;
 
-import com.github.jiexa.model.Account;
-import com.github.jiexa.model.exception.NotEnoughMoneyException;
-import com.github.jiexa.service.exception.AccountAlreadyExistsException;
-import com.github.jiexa.service.exception.AccountNotFoundException;
-import com.github.jiexa.service.exception.AccountServiceException;
-import com.github.jiexa.storage.AccountStorage;
-import lombok.extern.log4j.Log4j2;
+import com.google.inject.Inject;
+import model.Account;
+import model.exception.NotEnoughMoneyException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import service.exception.AccountAlreadyExistsException;
+import service.exception.AccountNotFoundException;
+import service.exception.AccountServiceException;
+import storage.AccountInMemoryStorage;
+import storage.AccountStorage;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
-@Log4j2
 public class AccountService {
+
+    private final Logger log = LoggerFactory.getLogger(AccountService.class);
 
     private AccountStorage accountStorage;
 
+    @Inject
     public AccountService(AccountStorage accountStorage) {
         this.accountStorage = accountStorage;
     }

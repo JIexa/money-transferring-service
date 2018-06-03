@@ -1,11 +1,10 @@
-package com.github.jiexa.storage;
+package storage;
 
-import com.github.jiexa.Currency;
-import com.github.jiexa.model.Account;
+import model.Account;
+import model.Currency;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class AccountInMemoryStorage implements AccountStorage {
 

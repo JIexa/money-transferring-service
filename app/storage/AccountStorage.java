@@ -1,6 +1,6 @@
-package com.github.jiexa.storage;
+package storage;
 
-import com.github.jiexa.model.Account;
+import model.Account;
 
 import java.util.List;
 import java.util.Optional;

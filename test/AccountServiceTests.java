@@ -1,29 +1,26 @@
-package com.github.jiexa;
-
-import com.github.jiexa.model.Account;
-import com.github.jiexa.model.exception.NotEnoughMoneyException;
-import com.github.jiexa.service.AccountService;
-import com.github.jiexa.service.exception.AccountAlreadyExistsException;
-import com.github.jiexa.service.exception.AccountNotFoundException;
-import com.github.jiexa.service.exception.AccountServiceException;
-import com.github.jiexa.storage.AccountInMemoryStorage;
-import com.github.jiexa.storage.AccountStorage;
+import model.Account;
+import model.exception.NotEnoughMoneyException;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
+import service.AccountService;
+import service.exception.AccountAlreadyExistsException;
+import service.exception.AccountNotFoundException;
+import service.exception.AccountServiceException;
+import storage.AccountInMemoryStorage;
+import storage.AccountStorage;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
 
 @RunWith(MockitoJUnitRunner.class)
 public class AccountServiceTests {

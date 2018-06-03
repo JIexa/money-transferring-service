@@ -1,4 +1,4 @@
-package com.github.jiexa.model.exception;
+package model.exception;
 
 public class ModelException extends Exception {
     public ModelException(String message) {

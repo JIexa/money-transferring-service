@@ -1,9 +1,9 @@
-package com.github.jiexa.model;
+package model;
 
-import com.github.jiexa.Currency;
-import com.github.jiexa.model.exception.NotEnoughMoneyException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import model.exception.NotEnoughMoneyException;
+
 
 import java.math.BigDecimal;
 import java.math.MathContext;
