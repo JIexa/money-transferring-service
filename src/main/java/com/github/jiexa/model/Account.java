@@ -5,6 +5,8 @@ import com.github.jiexa.model.exception.NotEnoughMoneyException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.UUID;
 
 @Getter
@@ -12,15 +14,17 @@ import java.util.UUID;
 public class Account {
     private UUID accountId;
     private Long ownerId;
-    private Double amountOfMoney;
+    private BigDecimal amountOfMoney;
     private Currency currency;
 
-    public void replenishAccount(Double addingAmount) {
-        amountOfMoney = Double.sum(amountOfMoney, addingAmount);
+    public void replenishAccount(BigDecimal addingAmount) {
+        addingAmount = getRoundedBigDecimal(addingAmount);
+        amountOfMoney = amountOfMoney.add(addingAmount);
     }
 
-    public void withdrawFromAccount(Double withdrawingAmount) throws NotEnoughMoneyException {
-        Double calculation = amountOfMoney - withdrawingAmount;
+    public void withdrawFromAccount(BigDecimal withdrawingAmount) throws NotEnoughMoneyException {
+        withdrawingAmount = getRoundedBigDecimal(withdrawingAmount);
+        BigDecimal calculation = getRoundedBigDecimal(amountOfMoney.subtract(withdrawingAmount));
         if (isEnoughMoney(calculation)) {
             amountOfMoney = calculation;
         } else {
@@ -28,7 +32,13 @@ public class Account {
         }
     }
 
-    private boolean isEnoughMoney(Double calculation) {
-        return calculation < 0.0;
+    private boolean isEnoughMoney(BigDecimal calculation) {
+        return calculation.compareTo(getRoundedBigDecimal(new BigDecimal(0.0))) >= 0;
     }
+
+    private BigDecimal getRoundedBigDecimal(BigDecimal value) {
+        return value.round(MathContext.DECIMAL64);
+    }
+
+
 }

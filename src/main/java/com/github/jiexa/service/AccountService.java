@@ -1,12 +1,14 @@
 package com.github.jiexa.service;
 
 import com.github.jiexa.model.Account;
+import com.github.jiexa.model.exception.NotEnoughMoneyException;
 import com.github.jiexa.service.exception.AccountAlreadyExistsException;
 import com.github.jiexa.service.exception.AccountNotFoundException;
 import com.github.jiexa.service.exception.AccountServiceException;
 import com.github.jiexa.storage.AccountStorage;
 import lombok.extern.log4j.Log4j2;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,7 +41,6 @@ public class AccountService {
         return account.get();
     }
 
-
     //    TODO: to guarantee an uniqueness of the Person preferably using UUID, but for the sake of simplicity I have chosen a long value
     private boolean isAccountNotExistFor(Long personId) throws AccountAlreadyExistsException {
         if (accountStorage.getAccountByPersonId(personId).isPresent()) {
@@ -49,27 +50,41 @@ public class AccountService {
         return true;
     }
 
-
-    public void putMoneyIntoAccountInRubles(UUID accountId, Double amountOfMoney) throws AccountNotFoundException {
+    public void putMoneyIntoAccountInRubles(UUID accountId, BigDecimal amountOfMoney) throws AccountNotFoundException {
 
         Optional<Account> account = accountStorage.getAccountById(accountId);
-        if (!account.isPresent()) {
-            log.error("account with id={} does not exist", accountId);
-            throw new AccountNotFoundException("error while getting an account with id="+ accountId);
-        }
+
+        checkAccountExists(accountId, account);
 
         account.get().replenishAccount(amountOfMoney);
     }
 
-
-    public void withdrawMoneyFromAccountInRubles(UUID accountId, Double amountOfMoney) throws AccountNotFoundException {
+    public void withdrawMoneyFromAccountInRubles(UUID accountId, BigDecimal amountOfMoney) throws AccountNotFoundException, NotEnoughMoneyException {
 
         Optional<Account> account = accountStorage.getAccountById(accountId);
+
+        checkAccountExists(accountId, account);
+
+        account.get().withdrawFromAccount(amountOfMoney);
+    }
+
+    public void transferMoneyBetweenAccountsInRubles(UUID sourceAccountId, UUID targetAccountId, BigDecimal amountOfMoney) throws AccountNotFoundException, NotEnoughMoneyException {
+
+        Optional<Account> sourceAccount = accountStorage.getAccountById(sourceAccountId);
+        Optional<Account> targetAccount = accountStorage.getAccountById(targetAccountId);
+
+        checkAccountExists(sourceAccountId, sourceAccount);
+        checkAccountExists(targetAccountId, targetAccount);
+
+//        TODO: implement in a transaction
+        sourceAccount.get().withdrawFromAccount(amountOfMoney);
+        targetAccount.get().replenishAccount(amountOfMoney);
+    }
+
+    private void checkAccountExists(UUID accountId, Optional<Account> account) throws AccountNotFoundException {
         if (!account.isPresent()) {
             log.error("account with id={} does not exist", accountId);
-            throw new AccountNotFoundException("error while getting an account with id=" + accountId);
+            throw new AccountNotFoundException("error while getting an account with id="+ accountId);
         }
-
-        account.get().replenishAccount(amountOfMoney);
     }
 }

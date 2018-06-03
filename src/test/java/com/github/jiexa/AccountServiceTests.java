@@ -1,6 +1,7 @@
 package com.github.jiexa;
 
 import com.github.jiexa.model.Account;
+import com.github.jiexa.model.exception.NotEnoughMoneyException;
 import com.github.jiexa.service.AccountService;
 import com.github.jiexa.service.exception.AccountAlreadyExistsException;
 import com.github.jiexa.service.exception.AccountNotFoundException;
@@ -15,7 +16,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,29 +58,101 @@ public class AccountServiceTests {
     }
 
     @Test(expected = AccountAlreadyExistsException.class)
-    public void existingAccount_creatingNewAccount_throwAccountAlreadyExistsException() throws AccountServiceException {
+    public void existingAccount_creatingNewAccount_throwsAccountAlreadyExistsException() throws AccountServiceException {
         accountStorage.createDefaultAccountByPersonId(personId);
 
         accountService.createAccountFor(personId);
     }
 
     @Test(expected = AccountNotFoundException.class)
-    public void nonExistingAccount_putMoneyIntoAccount_throwAccountNotFoundException() throws AccountNotFoundException {
+    public void nonExistingAccount_putMoney_throwsAccountNotFoundException() throws AccountNotFoundException {
 
         UUID accountId = UUID.randomUUID();
-        Double amountOfMoney = 14397.4;
+        BigDecimal amountOfMoney = new BigDecimal(14397.4);
 
         accountService.putMoneyIntoAccountInRubles(accountId, amountOfMoney);
     }
 
     @Test
-    public void existingAccount_putMoneyIntoAccount_successfulReplenishmentOfAccount() throws AccountServiceException {
+    public void existingAccount_putMoney_successfulReplenishmentOfAccount() throws AccountServiceException {
         Account account = accountService.createAccountFor(personId);
-        Double addingAmountOfMoney = 14397.4;
-        Double expectedAmountOfMoney = Double.sum(account.getAmountOfMoney(), addingAmountOfMoney);
+        BigDecimal addingAmountOfMoney = new BigDecimal(14397.4);
+        BigDecimal expectedAmountOfMoney = account.getAmountOfMoney().add(addingAmountOfMoney).round(MathContext.DECIMAL64);
 
         accountService.putMoneyIntoAccountInRubles(account.getAccountId(), addingAmountOfMoney);
 
         Assert.assertEquals("replenishing was proceeded incorrectly", expectedAmountOfMoney, account.getAmountOfMoney());
+    }
+
+    @Test
+    public void existingAccount_withdrawMoney_successfulWithdrawingFromAccount() throws AccountServiceException, NotEnoughMoneyException {
+//        try to withdraw part of the money from the account
+        Account account = accountService.createAccountFor(personId);
+        BigDecimal addingAmountOfMoney = new BigDecimal(1400.4);
+        BigDecimal withdrawingAmountOfMoney = new BigDecimal(400.4);
+        account.replenishAccount(addingAmountOfMoney);
+        BigDecimal expectedAmountOfMoney = account.getAmountOfMoney().subtract(withdrawingAmountOfMoney).round(MathContext.DECIMAL64);
+
+        accountService.withdrawMoneyFromAccountInRubles(account.getAccountId(), withdrawingAmountOfMoney);
+
+        Assert.assertEquals("withdrawing was proceeded incorrectly", expectedAmountOfMoney, account.getAmountOfMoney());
+
+//        try to withdraw all money from the account
+        BigDecimal secondWithdrawing = new BigDecimal(1000.0);
+        expectedAmountOfMoney = BigDecimal.ZERO.round(MathContext.DECIMAL64);
+
+        accountService.withdrawMoneyFromAccountInRubles(account.getAccountId(), secondWithdrawing);
+
+        Assert.assertEquals("withdrawing all money was proceeded incorrectly", expectedAmountOfMoney.byteValueExact(), account.getAmountOfMoney().byteValueExact());
+    }
+
+    @Test(expected = NotEnoughMoneyException.class)
+    public void existingAccount_withdrawMoney_throwsNotEnoughMoneyException() throws AccountServiceException, NotEnoughMoneyException {
+        Account account = accountService.createAccountFor(personId);
+        BigDecimal withdrawingAmountOfMoney = new BigDecimal(404);
+
+        accountService.withdrawMoneyFromAccountInRubles(account.getAccountId(), withdrawingAmountOfMoney);
+    }
+
+    @Test(expected = AccountNotFoundException.class)
+    public void nonExistingSourceAccount_transferMoney_throwsAccountNotFoundException() throws AccountServiceException, NotEnoughMoneyException {
+
+        UUID sourceAccountId = UUID.randomUUID();
+        UUID targetAccountId = accountService.createAccountFor(personId).getAccountId();
+        BigDecimal amountOfMoney = new BigDecimal(413.7);
+
+        accountService.transferMoneyBetweenAccountsInRubles(sourceAccountId, targetAccountId, amountOfMoney);
+    }
+
+    @Test(expected = NotEnoughMoneyException.class)
+    public void existingSourceAccount_transferMoney_throwsNotEnoughMoneyException() throws AccountServiceException, NotEnoughMoneyException {
+
+        UUID sourceAccountId = accountService.createAccountFor(personId).getAccountId();
+        UUID targetAccountId = accountService.createAccountFor(2L).getAccountId();
+        BigDecimal amountOfMoney = new BigDecimal(413.7);
+
+        accountService.transferMoneyBetweenAccountsInRubles(sourceAccountId, targetAccountId, amountOfMoney);
+    }
+
+    @Test
+    public void existingSourceAccount_transferMoney_successfulTransferring() throws AccountServiceException, NotEnoughMoneyException {
+//        prepare source account
+        Account sourceAccount = accountService.createAccountFor(personId);
+        BigDecimal addingAmountOfMoney = new BigDecimal(10000);
+        sourceAccount.replenishAccount(addingAmountOfMoney);
+        BigDecimal initialValueOfSourceAccount = sourceAccount.getAmountOfMoney();
+
+//        prepare target stuff
+        Account targetAccount = accountService.createAccountFor(2L);
+        BigDecimal initialValueOfTargetAccount = targetAccount.getAmountOfMoney();
+        BigDecimal transferringAmountOfMoney = new BigDecimal(413.7);
+
+        BigDecimal expectedAmountOfMoneyIntoSourceAccount = initialValueOfSourceAccount.subtract(transferringAmountOfMoney).round(MathContext.DECIMAL64);
+        BigDecimal expectedAmountOfMoneyIntoTargetAccount = initialValueOfTargetAccount.add(transferringAmountOfMoney).round(MathContext.DECIMAL64);
+
+        accountService.transferMoneyBetweenAccountsInRubles(sourceAccount.getAccountId(), targetAccount.getAccountId(), transferringAmountOfMoney);
+
+        Assert.assertEquals("Incorrect amount of money was transferred from the source account", expectedAmountOfMoneyIntoSourceAccount, sourceAccount.getAmountOfMoney());
+        Assert.assertEquals("Incorrect amount of money was transferred to the target account", expectedAmountOfMoneyIntoTargetAccount, targetAccount.getAmountOfMoney());
     }
 }
