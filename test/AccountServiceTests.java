@@ -4,7 +4,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import service.AccountService;
-import service.exception.AccountAlreadyExistsException;
+import storage.exception.AccountAlreadyExistsException;
 import service.exception.AccountNotFoundException;
 import service.exception.AccountServiceException;
 import storage.AccountInMemoryStorage;

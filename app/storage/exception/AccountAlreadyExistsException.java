@@ -1,4 +1,6 @@
-package service.exception;
+package storage.exception;
+
+import service.exception.AccountServiceException;
 
 public class AccountAlreadyExistsException extends AccountServiceException {
     public AccountAlreadyExistsException(String message) {

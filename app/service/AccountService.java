@@ -5,15 +5,15 @@ import model.Account;
 import model.exception.NotEnoughMoneyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import service.exception.AccountAlreadyExistsException;
+import storage.exception.AccountAlreadyExistsException;
 import service.exception.AccountNotFoundException;
 import service.exception.AccountServiceException;
-import storage.AccountInMemoryStorage;
+import service.exception.IncorrectFormatAmountOfMoneyException;
 import storage.AccountStorage;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public class AccountService {
 
@@ -29,51 +29,59 @@ public class AccountService {
     //    TODO: should I return exactly this Account entity? or it is reasonable to create specified DTO?
     public Account createAccountFor(Long personId) throws AccountServiceException {
 
-//        FIXME: probably, it is better to verify existence of the account on the data storage layer
-        if (isAccountNotExistFor(personId)) {
-            return accountStorage.createDefaultAccountByPersonId(personId);
-        }
-        throw new AccountServiceException("undefined exception");
+        return accountStorage.createDefaultAccountByPersonId(personId);
     }
 
-    public Account getAccountFor(Long personId) throws AccountNotFoundException {
+    public Account getAccountPersonId(Long personId) throws AccountNotFoundException {
 
         Optional<Account> account = accountStorage.getAccountByPersonId(personId);
-        if (!account.isPresent()) {
-            log.error("account for the person with id={} does not exist", personId);
-            throw new AccountNotFoundException(String.format("error while getting an account for the person with id=%d", personId));
-        }
+
+        checkAccountExists(account.get().getId(), account);
+
         return account.get();
     }
 
-    //    TODO: to guarantee an uniqueness of the Person preferably using UUID, but for the sake of simplicity I have chosen a long value
-    private boolean isAccountNotExistFor(Long personId) throws AccountAlreadyExistsException {
-        if (accountStorage.getAccountByPersonId(personId).isPresent()) {
-            log.error("account for the person with id={} exists", personId);
-            throw new AccountAlreadyExistsException(String.format("with id=%d", personId));
-        }
-        return true;
+    public Account getAccountById(Long id) throws AccountNotFoundException {
+
+        Optional<Account> account = accountStorage.getAccountById(id);
+
+        checkAccountExists(account.get().getId(), account);
+
+        return account.get();
     }
 
-    public void putMoneyIntoAccountInRubles(UUID accountId, BigDecimal amountOfMoney) throws AccountNotFoundException {
+    public List<Account> getAllAccounts() {
+        return accountStorage.getAllAccounts();
+    }
 
-        Optional<Account> account = accountStorage.getAccountById(accountId);
 
-        checkAccountExists(accountId, account);
+    public Account putMoneyIntoAccountInRubles(Long id, BigDecimal amountOfMoney) throws AccountNotFoundException, IncorrectFormatAmountOfMoneyException {
+
+        checkAmountOfMoneyIsCorrect(amountOfMoney);
+
+        Optional<Account> account = accountStorage.getAccountById(id);
+
+        checkAccountExists(id, account);
 
         account.get().replenishAccount(amountOfMoney);
+        return account.get();
     }
 
-    public void withdrawMoneyFromAccountInRubles(UUID accountId, BigDecimal amountOfMoney) throws AccountNotFoundException, NotEnoughMoneyException {
+    public Account withdrawMoneyFromAccountInRubles(Long id, BigDecimal amountOfMoney) throws AccountNotFoundException, NotEnoughMoneyException, IncorrectFormatAmountOfMoneyException {
 
-        Optional<Account> account = accountStorage.getAccountById(accountId);
+        checkAmountOfMoneyIsCorrect(amountOfMoney);
 
-        checkAccountExists(accountId, account);
+        Optional<Account> account = accountStorage.getAccountById(id);
+
+        checkAccountExists(id, account);
 
         account.get().withdrawFromAccount(amountOfMoney);
+        return account.get();
     }
 
-    public void transferMoneyBetweenAccountsInRubles(UUID sourceAccountId, UUID targetAccountId, BigDecimal amountOfMoney) throws AccountNotFoundException, NotEnoughMoneyException {
+    public void transferMoneyBetweenAccountsInRubles(Long sourceAccountId, Long targetAccountId, BigDecimal amountOfMoney) throws AccountNotFoundException, NotEnoughMoneyException, IncorrectFormatAmountOfMoneyException {
+
+        checkAmountOfMoneyIsCorrect(amountOfMoney);
 
         Optional<Account> sourceAccount = accountStorage.getAccountById(sourceAccountId);
         Optional<Account> targetAccount = accountStorage.getAccountById(targetAccountId);
@@ -86,10 +94,18 @@ public class AccountService {
         targetAccount.get().replenishAccount(amountOfMoney);
     }
 
-    private void checkAccountExists(UUID accountId, Optional<Account> account) throws AccountNotFoundException {
-        if (!account.isPresent()) {
-            log.error("account with id={} does not exist", accountId);
-            throw new AccountNotFoundException("error while getting an account with id="+ accountId);
+    private void checkAmountOfMoneyIsCorrect(BigDecimal amountOfMoney) throws IncorrectFormatAmountOfMoneyException {
+        if (amountOfMoney.compareTo(BigDecimal.ZERO) < 0) {
+            log.error("cannot proceed an operation due to incorrect amount of money: {}. Must be positive", amountOfMoney);
+            throw new IncorrectFormatAmountOfMoneyException("amountOfMoney must be a positive value");
         }
     }
+
+    private void checkAccountExists(Long accountId, Optional<Account> account) throws AccountNotFoundException {
+        if (!account.isPresent()) {
+            log.error("account with id={} does not exist", accountId);
+            throw new AccountNotFoundException("error while getting an account with id=" + accountId);
+        }
+    }
+
 }

@@ -1,5 +1,5 @@
 
-GET       /money                    controllers.AccountController.getMoney
-GET       /account/by/:personId     controllers.AccountController.getAccountFor(personId: Long)
+GET        /accounts                             controllers.AccountController.getAll
+GET        /accounts/:id                         controllers.AccountController.get(id: Long)
 
-POST      /create/:personId         controllers.AccountController.create(personId: Long)
+->         /accounts/ post.Routes
