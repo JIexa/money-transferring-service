@@ -1,0 +1,38 @@
+group 'com.github.jiexa'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'play'
+
+sourceCompatibility = 1.8
+
+def playVersion = "2.6.15"
+def scalaVersion = System.getProperty("scala.binary.version", /* default = */ "2.12")
+
+model {
+    components {
+        play {
+            platform play: playVersion, scala: scalaVersion, java: '1.8'
+            injectedRoutesGenerator = true
+
+            sources {
+                twirlTemplates {
+                    defaultImports = TwirlImports.JAVA
+                }
+            }
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    play "com.typesafe.play:play-guice_$scalaVersion:$playVersion"
+    play "com.typesafe.play:play-logback_$scalaVersion:$playVersion"
+    play "com.h2database:h2:1.4.197"
+
+    playTest "org.assertj:assertj-core:3.6.2"
+    playTest "org.awaitility:awaitility:2.0.0"
+}

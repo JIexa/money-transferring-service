@@ -1,0 +1,14 @@
+Content-type by default is application/json
+
+http://localhost:9000/accounts/1 - create account for the person with id=1
+http://localhost:9000/accounts/1 - get account with id = 1
+http://localhost:9000/accounts - get all accounts
+http://localhost:9000/accounts/1/replenish/100 - replenish the account with id=1 by 100 rub
+http://localhost:9000/accounts/1/withdraw/100 - withdraw from the account with id=1 by 100 rub
+http://localhost:9000/accounts/transfer - transfer money from the account with id=1 to id=2 by 100 rub
+ Body:
+    {
+    	"sourceAccountId": 1,
+    	"targetAccountId": 2,
+    	"amountOfMoney": 100
+    }
