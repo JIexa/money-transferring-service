@@ -1,12 +1,10 @@
 package storage;
 
-import model.Account;
+import models.Account;
 import storage.exception.AccountAlreadyExistsException;
 
 import java.math.BigDecimal;
 import java.util.*;
-
-import static javax.swing.UIManager.put;
 
 public class AccountInMemoryStorage implements AccountStorage {
 

@@ -1,4 +1,4 @@
-package model.exception;
+package models.exception;
 
 public class NotEnoughMoneyException extends ModelException {
     public NotEnoughMoneyException(String message) {

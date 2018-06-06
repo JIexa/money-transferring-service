@@ -1,15 +1,17 @@
 package service;
 
 import com.google.inject.Inject;
-import model.Account;
-import model.exception.NotEnoughMoneyException;
+import io.ebean.Ebean;
+import io.ebean.Transaction;
+import models.Account;
+import models.exception.NotEnoughMoneyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import storage.exception.AccountAlreadyExistsException;
 import service.exception.AccountNotFoundException;
 import service.exception.AccountServiceException;
 import service.exception.IncorrectFormatAmountOfMoneyException;
 import storage.AccountStorage;
+import storage.exception.AccountAlreadyExistsException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,8 +28,7 @@ public class AccountService {
         this.accountStorage = accountStorage;
     }
 
-    //    TODO: should I return exactly this Account entity? or it is reasonable to create specified DTO?
-    public Account createAccountFor(Long personId) throws AccountServiceException {
+    public Account createAccountFor(Long personId) throws AccountAlreadyExistsException {
 
         return accountStorage.createDefaultAccountByPersonId(personId);
     }
@@ -55,31 +56,44 @@ public class AccountService {
     }
 
 
-    public Account putMoneyIntoAccountInRubles(Long id, BigDecimal amountOfMoney) throws AccountNotFoundException, IncorrectFormatAmountOfMoneyException {
+    public Account putMoneyIntoAccountInRubles(Long id, BigDecimal amountOfMoney) throws AccountServiceException {
 
         checkAmountOfMoneyIsCorrect(amountOfMoney);
 
         Optional<Account> account = accountStorage.getAccountById(id);
-
         checkAccountExists(id, account);
-
-        account.get().replenishAccount(amountOfMoney);
-        return account.get();
+        return processInTransaction((s) -> {
+            account.get().replenishAccount(amountOfMoney);
+            Ebean.save(account.get());
+            log.debug("replenishment of the account with id={}", account.get().getId());
+            return account.get();
+        });
     }
 
-    public Account withdrawMoneyFromAccountInRubles(Long id, BigDecimal amountOfMoney) throws AccountNotFoundException, NotEnoughMoneyException, IncorrectFormatAmountOfMoneyException {
+    public Account withdrawMoneyFromAccountInRubles(Long id, BigDecimal amountOfMoney) throws IncorrectFormatAmountOfMoneyException, AccountServiceException {
 
         checkAmountOfMoneyIsCorrect(amountOfMoney);
 
-        Optional<Account> account = accountStorage.getAccountById(id);
+        Optional<Account> optAccount = accountStorage.getAccountById(id);
+        checkAccountExists(id, optAccount);
+        Account account = optAccount.get();
+        Account updatedAccount = processInTransaction((s) -> {
+            try {
+                account.withdrawFromAccount(amountOfMoney);
+                Ebean.save(account);
+                log.debug("withdrawing from the account with id={}", account.getId());
+                return account;
+            } catch (NotEnoughMoneyException e) {
+                log.error("withdrawing from the account with id={} was finished with failure", account.getId());
+                throw new AccountServiceException("cannot withdraw money from the account", e);
+            }
+        });
 
-        checkAccountExists(id, account);
+        return updatedAccount;
 
-        account.get().withdrawFromAccount(amountOfMoney);
-        return account.get();
     }
 
-    public void transferMoneyBetweenAccountsInRubles(Long sourceAccountId, Long targetAccountId, BigDecimal amountOfMoney) throws AccountNotFoundException, NotEnoughMoneyException, IncorrectFormatAmountOfMoneyException {
+    public void transferMoneyBetweenAccountsInRubles(Long sourceAccountId, Long targetAccountId, BigDecimal amountOfMoney) throws AccountServiceException, NotEnoughMoneyException {
 
         checkAmountOfMoneyIsCorrect(amountOfMoney);
 
@@ -89,9 +103,13 @@ public class AccountService {
         checkAccountExists(sourceAccountId, sourceAccount);
         checkAccountExists(targetAccountId, targetAccount);
 
-//        TODO: implement in a transaction
-        sourceAccount.get().withdrawFromAccount(amountOfMoney);
-        targetAccount.get().replenishAccount(amountOfMoney);
+        processInTransaction((s) -> {
+            sourceAccount.get().withdrawFromAccount(amountOfMoney);
+            targetAccount.get().replenishAccount(amountOfMoney);
+            Ebean.save(sourceAccount.get());
+            Ebean.save(targetAccount.get());
+            log.debug("transferring from the account with id={} to id={} was successful", sourceAccount.get().getId(), targetAccount.get().getId());
+        });
     }
 
     private void checkAmountOfMoneyIsCorrect(BigDecimal amountOfMoney) throws IncorrectFormatAmountOfMoneyException {
@@ -108,4 +126,28 @@ public class AccountService {
         }
     }
 
+    private Account processInTransaction(AccountFunction<String, Account> action) throws AccountServiceException {
+        Ebean.beginTransaction();
+        Account account = null;
+        try {
+            account = action.apply("");
+            Ebean.commitTransaction();
+            return account;
+        } catch (AccountServiceException e) {
+            throw e;
+        } finally {
+            Ebean.endTransaction();
+        }
+    }
+
+    private void processInTransaction(AccountConsumer<String> action) throws AccountServiceException, NotEnoughMoneyException {
+        Transaction transaction = Ebean.beginTransaction();
+        try {
+            action.accept("");
+            transaction.commit();
+        } catch (AccountServiceException | NotEnoughMoneyException e) {
+            transaction.end();
+            throw e;
+        }
+    }
 }

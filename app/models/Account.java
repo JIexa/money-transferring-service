@@ -1,25 +1,34 @@
-package model;
+package models;
 
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
-import model.exception.NotEnoughMoneyException;
+import io.ebean.Model;
+import lombok.*;
+import models.exception.NotEnoughMoneyException;
 
-
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.UUID;
 
 @Getter
 @ToString
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
-public class Account {
+@Entity
+@Table(name = "account")
+public class Account extends Model {
+
+    @Id
     private Long id;
     private Long ownerId;
     private BigDecimal amountOfMoney;
     private Currency currency;
+
+    public Account(Long ownerId, BigDecimal amountOfMoney, Currency currency) {
+        this.ownerId = ownerId;
+        this.amountOfMoney = amountOfMoney;
+        this.currency = currency;
+    }
 
     public void replenishAccount(BigDecimal addingAmount) {
         addingAmount = getRoundedBigDecimal(addingAmount);

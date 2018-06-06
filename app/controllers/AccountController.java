@@ -1,18 +1,17 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import model.Account;
-import model.dto.TransferMoneyDto;
-import model.exception.NotEnoughMoneyException;
-import play.data.Form;
+import models.Account;
+import models.dto.TransferMoneyDto;
+import models.exception.NotEnoughMoneyException;
 import play.libs.Json;
-import play.mvc.BodyParser;
 import play.mvc.Result;
 import play.mvc.Results;
 import service.AccountService;
 import service.exception.AccountNotFoundException;
 import service.exception.AccountServiceException;
 import service.exception.IncorrectFormatAmountOfMoneyException;
+import storage.exception.AccountAlreadyExistsException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,7 +35,7 @@ public class AccountController {
      * @return RESTful response code FIXME: and, maybe, account data or just accountId
      * @throws AccountServiceException - FIXME: give more specified exception
      */
-    public Result create(Long personId) throws AccountServiceException {
+    public Result create(Long personId) throws AccountAlreadyExistsException {
 
         JsonNode account = Json.toJson(accountService.createAccountFor(personId));
 
@@ -64,7 +63,7 @@ public class AccountController {
         return Results.ok(accounts);
     }
 
-    public Result replenish(Long id, Double amount) throws AccountNotFoundException, IncorrectFormatAmountOfMoneyException {
+    public Result replenish(Long id, Double amount) throws AccountServiceException {
 
         Account account = accountService.putMoneyIntoAccountInRubles(id, new BigDecimal(amount));
 
@@ -73,7 +72,7 @@ public class AccountController {
         return Results.ok(jsonAccount);
     }
 
-    public Result withdraw(Long id, Double amount) throws AccountNotFoundException, NotEnoughMoneyException, IncorrectFormatAmountOfMoneyException {
+    public Result withdraw(Long id, Double amount) throws AccountServiceException {
 
         Account account = accountService.withdrawMoneyFromAccountInRubles(id, new BigDecimal(amount));
 
@@ -82,7 +81,7 @@ public class AccountController {
         return Results.ok(jsonAccount);
     }
 
-    public Result transfer() throws AccountNotFoundException, NotEnoughMoneyException, IncorrectFormatAmountOfMoneyException {
+    public Result transfer() throws AccountServiceException, NotEnoughMoneyException {
 
         TransferMoneyDto dto = Json.fromJson(request().body().asJson(), TransferMoneyDto.class);
 

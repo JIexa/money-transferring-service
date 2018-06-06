@@ -1,8 +1,10 @@
-package model.dto;
+package models.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class TransferMoneyDto {
     private Long sourceAccountId;
     private Long targetAccountId;

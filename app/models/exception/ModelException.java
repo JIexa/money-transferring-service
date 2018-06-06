@@ -1,4 +1,4 @@
-package model.exception;
+package models.exception;
 
 public class ModelException extends Exception {
     public ModelException(String message) {
