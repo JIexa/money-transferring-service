@@ -11,7 +11,8 @@ Make sure you have installed sbt build tool https://www.scala-sbt.org/
 
 ## Using API of the application 
 
-All active endpoints of this app you can find in the file conf/http.request.examples 
+All active endpoints of this app you can find in the file conf/http.request.examples.
+Or you can import postman (https://www.getpostman.com/) collection for these purposes (file  config/money-transferring.postman_collection.json)
 
 ### ToDos
 - `[I-2]` - Add an opportunity to create an multi-currency account
