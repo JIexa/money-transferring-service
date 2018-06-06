@@ -62,7 +62,7 @@ public class AccountService {
 
         Optional<Account> account = accountStorage.getAccountById(id);
         checkAccountExists(id, account);
-        return processInTransaction((s) -> {
+        return processInTransaction(() -> {
             account.get().replenishAccount(amountOfMoney);
             Ebean.save(account.get());
             log.debug("replenishment of the account with id={}", account.get().getId());
@@ -77,7 +77,7 @@ public class AccountService {
         Optional<Account> optAccount = accountStorage.getAccountById(id);
         checkAccountExists(id, optAccount);
         Account account = optAccount.get();
-        Account updatedAccount = processInTransaction((s) -> {
+        Account updatedAccount = processInTransaction(() -> {
             try {
                 account.withdrawFromAccount(amountOfMoney);
                 Ebean.save(account);
@@ -93,7 +93,7 @@ public class AccountService {
 
     }
 
-    public void transferMoneyBetweenAccountsInRubles(Long sourceAccountId, Long targetAccountId, BigDecimal amountOfMoney) throws AccountServiceException, NotEnoughMoneyException {
+    public String transferMoneyBetweenAccountsInRubles(Long sourceAccountId, Long targetAccountId, BigDecimal amountOfMoney) throws AccountServiceException, NotEnoughMoneyException {
 
         checkAmountOfMoneyIsCorrect(amountOfMoney);
 
@@ -103,13 +103,15 @@ public class AccountService {
         checkAccountExists(sourceAccountId, sourceAccount);
         checkAccountExists(targetAccountId, targetAccount);
 
-        processInTransaction((s) -> {
+        processInTransaction(() -> {
             sourceAccount.get().withdrawFromAccount(amountOfMoney);
             targetAccount.get().replenishAccount(amountOfMoney);
             Ebean.save(sourceAccount.get());
             Ebean.save(targetAccount.get());
             log.debug("transferring from the account with id={} to id={} was successful", sourceAccount.get().getId(), targetAccount.get().getId());
         });
+
+        return "transferring money was proceeded successfully";
     }
 
     private void checkAmountOfMoneyIsCorrect(BigDecimal amountOfMoney) throws IncorrectFormatAmountOfMoneyException {
@@ -126,11 +128,11 @@ public class AccountService {
         }
     }
 
-    private Account processInTransaction(AccountFunction<String, Account> action) throws AccountServiceException {
+    private Account processInTransaction(AccountFunction<Account> action) throws AccountServiceException {
         Ebean.beginTransaction();
         Account account = null;
         try {
-            account = action.apply("");
+            account = action.apply();
             Ebean.commitTransaction();
             return account;
         } catch (AccountServiceException e) {
@@ -140,10 +142,10 @@ public class AccountService {
         }
     }
 
-    private void processInTransaction(AccountConsumer<String> action) throws AccountServiceException, NotEnoughMoneyException {
+    private void processInTransaction(AccountConsumer action) throws AccountServiceException, NotEnoughMoneyException {
         Transaction transaction = Ebean.beginTransaction();
         try {
-            action.accept("");
+            action.accept();
             transaction.commit();
         } catch (AccountServiceException | NotEnoughMoneyException e) {
             throw e;

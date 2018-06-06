@@ -4,7 +4,7 @@ import models.exception.NotEnoughMoneyException;
 import service.exception.AccountServiceException;
 
 @FunctionalInterface
-public interface AccountConsumer<T> {
+public interface AccountConsumer {
 
-    void accept(T t) throws AccountServiceException, NotEnoughMoneyException;
+    void accept() throws AccountServiceException, NotEnoughMoneyException;
 }

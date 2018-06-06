@@ -10,7 +10,6 @@ import play.mvc.Results;
 import service.AccountService;
 import service.exception.AccountNotFoundException;
 import service.exception.AccountServiceException;
-import service.exception.IncorrectFormatAmountOfMoneyException;
 import storage.exception.AccountAlreadyExistsException;
 
 import javax.inject.Inject;
@@ -32,62 +31,80 @@ public class AccountController {
     /**
      * Endpoint for creating account for the certain person
      * @param personId - id of a person in the system
-     * @return RESTful response code FIXME: and, maybe, account data or just accountId
-     * @throws AccountServiceException - FIXME: give more specified exception
+     * @return Result with created Account or description of exception in case of failure
+     *
      */
-    public Result create(Long personId) throws AccountAlreadyExistsException {
+    public Result create(Long personId) {
 
-        JsonNode account = Json.toJson(accountService.createAccountFor(personId));
-
-        return Results.ok("Account was created: " + account);
+        return handleExceptions(
+                () -> Json.toJson(accountService.createAccountFor(personId))
+        );
     }
 
-    public Result get(Long id) throws AccountServiceException {
+    public Result get(Long id) {
 
-        JsonNode account = Json.toJson(accountService.getAccountById(id));
-
-        return Results.ok(account);
+        return handleExceptions(
+                () -> Json.toJson(accountService.getAccountById(id))
+        );
     }
 
-    public Result getByPerson(Long personId) throws AccountServiceException {
+    public Result getByPerson(Long personId) {
 
-        JsonNode account = Json.toJson(accountService.getAccountPersonId(personId));
-
-        return Results.ok(account);
+        return handleExceptions(
+                () -> Json.toJson(accountService.getAccountPersonId(personId))
+        );
     }
 
     public Result getAll() {
 
-        JsonNode accounts = Json.toJson(accountService.getAllAccounts());
-
-        return Results.ok(accounts);
+        return handleExceptions(
+                () -> Json.toJson(accountService.getAllAccounts())
+        );
     }
 
-    public Result replenish(Long id, Double amount) throws AccountServiceException {
+    public Result replenish(Long id, Double amount)  {
 
-        Account account = accountService.putMoneyIntoAccountInRubles(id, new BigDecimal(amount));
+        return handleExceptions(
+                () -> Json.toJson(accountService.putMoneyIntoAccountInRubles(id, new BigDecimal(amount)))
+        );
 
-        JsonNode jsonAccount = Json.toJson(account);
-
-        return Results.ok(jsonAccount);
     }
 
-    public Result withdraw(Long id, Double amount) throws AccountServiceException {
+    public Result withdraw(Long id, Double amount){
 
-        Account account = accountService.withdrawMoneyFromAccountInRubles(id, new BigDecimal(amount));
+        return handleExceptions(
+                () -> Json.toJson(accountService.withdrawMoneyFromAccountInRubles(id, new BigDecimal(amount)))
+        );
 
-        JsonNode jsonAccount = Json.toJson(account);
-
-        return Results.ok(jsonAccount);
     }
 
-    public Result transfer() throws AccountServiceException, NotEnoughMoneyException {
+    public Result transfer() {
 
         TransferMoneyDto dto = Json.fromJson(request().body().asJson(), TransferMoneyDto.class);
 
-        accountService.transferMoneyBetweenAccountsInRubles(dto.getSourceAccountId(), dto.getTargetAccountId(), new BigDecimal(dto.getAmountOfMoney()));
+        return handleExceptions(
+                () -> Json.toJson(
+                        accountService.transferMoneyBetweenAccountsInRubles(
+                            dto.getSourceAccountId(),
+                            dto.getTargetAccountId(),
+                            new BigDecimal(dto.getAmountOfMoney())
+                        )
+                )
+        );
+    }
 
-        return Results.ok(String.format("%s was transferred from account with id=%d to id=%d", dto.getAmountOfMoney(), dto.getSourceAccountId(), dto.getTargetAccountId()));
+    private Result handleExceptions(ExceptionHandler<JsonNode> handler) {
+        try {
+            return Results.ok(Json.toJson(handler.handleOperation()));
+        } catch (AccountAlreadyExistsException e) {
+            return Results.badRequest(Json.toJson(e.getLocalizedMessage()));
+        } catch (AccountNotFoundException e) {
+            return Results.internalServerError(Json.toJson(e.getLocalizedMessage()));
+        } catch (AccountServiceException e) {
+            return Results.badRequest(Json.toJson(e.getLocalizedMessage()));
+        } catch (NotEnoughMoneyException e) {
+            return Results.notFound(Json.toJson(e.getLocalizedMessage()));
+        }
     }
 
 }

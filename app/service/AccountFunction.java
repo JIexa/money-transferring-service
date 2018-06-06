@@ -3,7 +3,7 @@ package service;
 import service.exception.AccountServiceException;
 
 @FunctionalInterface
-public interface AccountFunction<T, R> {
+public interface AccountFunction<R> {
 
-    R apply(T t) throws AccountServiceException;
+    R apply() throws AccountServiceException;
 }
