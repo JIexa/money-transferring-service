@@ -1,0 +1,8 @@
+
+GET        /accounts                             controllers.AccountController.getAll
+GET        /accounts/:id                         controllers.AccountController.get(id: Long)
+
+POST       /accounts/:id/replenish/:amount       controllers.AccountController.replenish(id: Long, amount : Double)
+POST       /accounts/:id/withdraw/:amount        controllers.AccountController.withdraw(id: Long, amount: Double)
+POST       /accounts/transfer                    controllers.AccountController.transfer
+POST       /accounts/:personId                   controllers.AccountController.create(personId: Long)
