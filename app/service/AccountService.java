@@ -146,8 +146,9 @@ public class AccountService {
             action.accept("");
             transaction.commit();
         } catch (AccountServiceException | NotEnoughMoneyException e) {
-            transaction.end();
             throw e;
+        } finally {
+            transaction.end();
         }
     }
 }
